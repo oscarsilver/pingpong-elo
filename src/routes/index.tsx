@@ -97,7 +97,14 @@ function Dashboard() {
                             {player.name}
                           </Link>
                         </TableCell>
-                        <TableCell className="text-right text-link font-bold tabular-nums">{player.elo}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          <span className="text-link font-bold">{player.effective_elo}</span>
+                          {player.decay_points > 0 && (
+                            <span className="text-orange-400 text-xs ml-1" title={`${player.decay_points} ELO förlorat p.g.a. inaktivitet`}>
+                              (-{player.decay_points})
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right text-positive font-medium tabular-nums">{player.wins}</TableCell>
                         <TableCell className="text-right text-negative font-medium tabular-nums">{player.losses}</TableCell>
                         <TableCell className="text-right text-muted-foreground tabular-nums">{winRate}%</TableCell>

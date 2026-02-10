@@ -41,7 +41,10 @@ function PlayerDetail() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-table-row rounded p-4 border border-border/50 text-center">
-                <div className="text-2xl font-bold text-link tabular-nums">{player.elo}</div>
+                <div className="text-2xl font-bold text-link tabular-nums">{player.effective_elo}</div>
+                {player.decay_points > 0 && (
+                  <div className="text-xs text-orange-400 font-medium mt-0.5 tabular-nums">-{player.decay_points} decay</div>
+                )}
                 <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">ELO</div>
               </div>
               <div className="bg-table-row rounded p-4 border border-border/50 text-center">

@@ -27,7 +27,8 @@ async function initializeDatabase() {
         elo INTEGER NOT NULL DEFAULT 1000,
         wins INTEGER NOT NULL DEFAULT 0,
         losses INTEGER NOT NULL DEFAULT 0,
-        created_at BIGINT NOT NULL
+        created_at BIGINT NOT NULL,
+        last_match_at BIGINT
       )
     `
 
@@ -53,8 +54,24 @@ async function initializeDatabase() {
       DO $$ BEGIN
         ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_format INTEGER NOT NULL DEFAULT 1;
         ALTER TABLE matches ADD COLUMN IF NOT EXISTS set_scores TEXT;
+        ALTER TABLE players ADD COLUMN IF NOT EXISTS last_match_at BIGINT;
       EXCEPTION WHEN others THEN NULL;
       END $$;
+    `
+
+    // Backfill last_match_at from existing match data
+    await sql`
+      UPDATE players SET last_match_at = sub.last_match
+      FROM (
+        SELECT player_id, MAX(timestamp) as last_match
+        FROM (
+          SELECT player1_id AS player_id, timestamp FROM matches
+          UNION ALL
+          SELECT player2_id AS player_id, timestamp FROM matches
+        ) all_matches
+        GROUP BY player_id
+      ) sub
+      WHERE players.id = sub.player_id AND players.last_match_at IS NULL
     `
 
     // Create indexes
@@ -83,6 +100,7 @@ export type Player = {
   wins: number
   losses: number
   created_at: number
+  last_match_at: number | null
 }
 
 export type SetScore = {
@@ -148,7 +166,7 @@ export const db = {
   async updatePlayer(id: number, updates: Partial<Omit<Player, 'id'>>): Promise<void> {
     const sets: string[] = []
     const values: any[] = []
-    
+
     if (updates.elo !== undefined) {
       sets.push(`elo = ${updates.elo}`)
     }
@@ -158,10 +176,13 @@ export const db = {
     if (updates.losses !== undefined) {
       sets.push(`losses = ${updates.losses}`)
     }
-    
+    if (updates.last_match_at !== undefined) {
+      sets.push(`last_match_at = ${updates.last_match_at}`)
+    }
+
     if (sets.length > 0) {
       await sql`
-        UPDATE players 
+        UPDATE players
         SET ${sql(updates)}
         WHERE id = ${id}
       `
